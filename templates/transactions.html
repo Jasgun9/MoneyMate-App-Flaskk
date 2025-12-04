@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="dashboard-header">
+  <div>
+    <h1 class="dashboard-title">Expenses</h1>
+    <p class="dashboard-subtitle">
+      See everything you’ve spent and prepare the next entry.
+    </p>
+  </div>
+</section>
+
+<section style="display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 1.1rem">
+  <!-- List card -->
+  <div class="card">
+    <div class="card-inner">
+      <div class="card-header">
+        <span class="card-title">All Transactions</span>
+        <span class="card-tag">Live · SQLite</span>
+      </div>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Category</th>
+            <!-- <th>Method</th> -->
+            <th>Amount</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody id="expenses-body">
+          {% if expenses %}
+            {% for e in expenses %}
+              <tr>
+                <td>{{ e.title }}</td>
+                <td>{{ e.category or '-' }}</td>
+                <!-- <td>{{ e.typee }}</td> -->
+                {% if e.isExpense %}
+                <td class="expense-amount negative">-₹ {{ '%.2f'|format(e.amount) }}</td>
+                  {% else %}
+                <td class="expense-amount positive">+₹ {{ '%.2f'|format(e.amount) }}</td>
+                  {% endif %}
+
+                <td>{{ e.dateAdded.strftime('%d %b') }}</td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr id="no-expense-row">
+              <td colspan="5" class="dashboard-subtitle">No expenses yet.</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Add expense form -->
+  <div class="card">
+    <div class="card-inner">
+      <div class="card-header">
+        <span class="card-title">Add Expense</span>
+        <span class="card-tag">AJAX · No reload</span>
+      </div>
+
+      <div id="expense-form">
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="title">Title</label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              placeholder="e.g. Groceries, Cab ride"
+              required
+            />
+          </div>
+
+
+           <div class="form-field">
+            <label for="isExpense">Expense Or Income</label>
+            <select id="isExpense" name="isExpense">
+              <option value="0">Income</option>
+              <option value="1">Expense</option>
+            </select>
+          </div>
+
+
+          <div class="form-field">
+            <label for="amount">Amount (₹)</label>
+            <input
+              type="number"
+              id="amount"
+              name="amount"
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+              required
+            />
+          </div>
+
+          <!-- <div class="form-field">
+            <label for="method">Payment Method</label>
+            <select id="method" name="method">
+              <option value="">Select method</option>
+              <option>UPI</option>
+              <option>Card</option>
+              <option>Cash</option>
+              <option>Wallet</option>
+            </select>
+          </div> -->
+
+
+<div class="category">
+          
+          </div>
+          
+          <div class="form-field">
+            <label for="date">Date</label>
+            <input type="date" id="date" name="date" />
+          </div>
+
+          <!-- <div class="form-field">
+            <label for="notes">Notes</label>
+            <textarea
+              id="notes"
+              name="notes"
+              placeholder="Optional details…"
+            ></textarea>
+          </div> -->
+        </div>
+
+        <div style="margin-top: 0.7rem; display: flex; gap: 0.5rem; justify-content: flex-end">
+          <button type="reset" class="btn btn-secondary" id="Reset" onclick="ResetData()">Reset</button>
+          <button type="button" id="addTransaction" class="btn btnincome">Save Expense</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<script>
+
+
+
+const ResetData = () => {
+  document.getElementById("title").value = ""
+  document.getElementById("category").value = ""
+  document.getElementById("amount").value = ""
+  document.getElementById("isExpense").value = ""
+  document.getElementById("date").value = ""
+}
+
+const loadData =async () =>{
+document.getElementById("expenses-body").innerHTML=""
+try {
+  const res = await fetch("/transactions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  const data = await res.json();
+  data.forEach(expense => {
+    if (expense.isExpense){
+      document.getElementById("expenses-body").innerHTML += `
+    <tr>
+                <td>${expense.title}</td>
+                <td>${expense.category}</td>
+                
+                <td class="expense-amount negative">-₹ ${expense.amount.toFixed(2)}</td>
+
+                <td>${expense.date_display}</td>
+              </tr>
+            
+    `
+    }
+    else{
+      document.getElementById("expenses-body").innerHTML += `
+    <tr>
+                <td>${expense.title}</td>
+                <td>${expense.category}</td>
+                
+                <td class="expense-amount positive">+₹ ${expense.amount.toFixed(2)}</td>
+
+                <td>${expense.date_display}</td>
+              </tr>
+    `
+    }
+  })
+}
+      
+catch (err) {
+  console.error(err);
+  alert("Network error while fetching expenses");
+}}
+
+  document.addEventListener("DOMContentLoaded", ()=>{
+
+document.getElementById("isExpense").addEventListener("change", ()=>{
+      if(document.getElementById("isExpense").value == 0){
+        document.getElementById("addTransaction").innerText = "Save Income"
+        document.getElementById("addTransaction").classList.remove("btnexpense")
+        document.getElementById("addTransaction").classList.add("btnincome")
+        document.getElementsByClassName("category")[0].innerHTML = ""
+      }
+      else{
+        document.getElementById("addTransaction").innerText = "Save Expense"
+        document.getElementById("addTransaction").classList.remove("btnincome")
+        document.getElementById("addTransaction").classList.add("btnexpense")
+        document.getElementsByClassName("category")[0].innerHTML = `<div class="form-field">
+            <label for="category">Category</label>
+            <select id="category" name="category">
+              <option value="">Select category</option>
+              <option>Essentials</option>
+              <option>Transport</option>
+              <option>Leisure</option>
+              <option>Subscriptions</option>
+              <option>Utilities</option>
+              <option>Other</option>
+            </select>
+          </div>`;
+      }
+})
+
+
+
+
+    document.getElementById("date").value = new Date().toISOString().split("T")[0]
+    document.getElementById("addTransaction").addEventListener("click", async () => {
+      title = document.getElementById("title").value
+      try {
+      category = document.getElementById("category").value}
+      catch { category = "" }
+      amount = document.getElementById("amount").value
+      isExpense = document.getElementById("isExpense").value
+      date = document.getElementById("date").value
+      console.log(title, category, amount, isExpense, date)
+        url = "/add_transaction?title="+title+"&category="+category+"&amount="+amount+"&isExpense="+isExpense+"&dateAdded="+date
+
+
+      try{
+const res = await fetch(url, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+
+      });
+
+      if (res.ok) {
+        await loadData();
+        return;
+      }}
+      catch(err){
+        console.error(err);
+        alert("Network error while saving expense");
+      }
+
+
+    })
+  })
+  </script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // function appendExpenseRow(expense) {
+  //   const tbody = document.getElementById("expenses-body");
+  //   const noRow = document.getElementById("no-expense-row");
+  //   if (noRow) noRow.remove();
+
+  //   const tr = document.createElement("tr");
+  //   tr.innerHTML = `
+  //     <td>${expense.title}</td>
+  //     <td>${expense.category || "-"}</td>
+  //     <td>${expense.method}</td>
+  //     <td class="expense-amount negative">-₹ ${expense.amount.toFixed(2)}</td>
+  //     <td>${expense.date_display}</td>
+  //   `;
+  //   tbody.prepend(tr);
+  // }
+
+  // document.addEventListener("DOMContentLoaded", () => {
+  //   const form = document.getElementById("expense-form");
+
+  //   form.addEventListener("submit", async (e) => {
+  //     e.preventDefault();
+
+  //     const payload = {
+  //       title: document.getElementById("title").value,
+  //       category: document.getElementById("category").value,
+  //       amount: document.getElementById("amount").value,
+  //       method: document.getElementById("method").value,
+  //       date: document.getElementById("date").value || null,
+  //     };
+
+  //     try {
+  //       const res = await fetch("/api/expenses", {
+  //         method: "POST",
+  //         headers: { "Content-Type": "application/json" },
+  //         body: JSON.stringify(payload),
+  //       });
+
+  //       const data = await res.json();
+
+  //       if (!data.ok) {
+  //         alert(data.error || "Failed to save expense");
+  //         return;
+  //       }
+
+  //       appendExpenseRow(data.expense);
+  //       form.reset();
+  //     } catch (err) {
+  //       console.error(err);
+  //       alert("Network error while saving expense");
+  //     }
+  //   });
+  // });
+
+  document.addEventListener("DOMContentLoaded", ()=>{
+    document.getElementById("addTransaction").addEventListener("click", () => {
+      title = document.getElementById("title").value
+      category = document.getElementById("category").value
+      amount = document.getElementById("amount").value
+      isExpense = document.getElementById("isExpense").value
+      date = document.getElementById("date").value
+      console.log(title, category, amount, isExpense, date)
+    })
+  })
+</script>
+{% endblock %}

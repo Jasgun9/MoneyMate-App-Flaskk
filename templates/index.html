@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="dashboard-header">
+  <div>
+    <h1 class="dashboard-title">Dashboard</h1>
+    <p class="dashboard-subtitle">
+      A calm overview of your money: balance, spending and savings goals.
+    </p>
+  </div>
+  <div class="dashboard-header-right">
+    <span class="badge-pill">Live data · SQLite backend</span>
+  </div>
+</section>
+
+<section class="dashboard-grid">
+  <!-- Left column -->
+  <div class="dashboard-left">
+    <!-- Balance card -->
+    <div class="card" style="margin-bottom: 0.8rem">
+      <div class="card-inner">
+        <div class="card-header">
+          <span class="card-title">Current Balance</span>
+          <span class="card-tag">This month</span>
+        </div>
+        <p class="balance-amount">₹ {{ '%.2f'|format(balance) }}</p>
+        <div class="balance-meta">
+          <span>Inflow: <strong>₹ {{ '%.2f'|format(income) }}</strong></span>
+          <span>Outflow: <strong>₹ {{ '%.2f'|format(expense) }}</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent expenses -->
+    <div class="card">
+      <div class="card-inner">
+        <div class="card-header">
+          <span class="card-title">Recent Transactions</span>
+          <a href="/transactions" class="card-tag">View all</a>
+        </div>
+
+        <div class="expense-list" id="recent-expense-list">
+          {% if latest_expenses %}
+            {% for e in latest_expenses %}
+              <div class="expense-item">
+                <div class="expense-main">
+                  <span class="expense-name">
+                    {{ e.title }}
+                    {% if e.category %}· {{ e.category }}{% endif %}
+                  </span>
+                  <span class="expense-meta">
+                    {{ e.dateAdded.strftime('%d %b') }}
+                    {% if e.category %} · {{ e.category }}{% endif %}
+                  </span>
+                </div>
+                <div style="text-align: right">
+                  {% if e.isExpense %}
+                  <div class="expense-amount negative">
+                    -₹ {{ '%.2f'|format(e.amount) }}
+                  </div>
+                    {% else %}
+                  <div class="expense-amount positive">
+                    +₹ {{ '%.2f'|format(e.amount) }}
+                  </div>
+                    {% endif %}
+                    
+                  <div class="expense-meta">{{ e.typee }}</div>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <p class="dashboard-subtitle">No transactions yet.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right column -->
+  <div class="dashboard-right">
+    <!-- Fake chart kept same for now -->
+    <div class="card" style="margin-bottom: 0.8rem">
+      <div class="card-inner">
+        <div class="card-header">
+          <span class="card-title">Spending Breakdown</span>
+          <span class="card-tag">Static chart</span>
+        </div>
+
+        <div class="chart-wrapper">
+          <div class="pie-chart">
+            <div class="pie-center">
+              42%<br />
+              Essentials
+            </div>
+          </div>
+
+          <div class="chart-legend">
+            <div class="legend-item">
+              <span class="legend-swatch" style="background: rgba(56, 189, 248, 0.95)"></span>
+              <span>Essentials · 42%</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-swatch" style="background: rgba(52, 211, 153, 0.95)"></span>
+              <span>Savings · 28%</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-swatch" style="background: rgba(248, 250, 252, 0.5)"></span>
+              <span>Leisure · 18%</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-swatch" style="background: rgba(248, 113, 113, 0.95)"></span>
+              <span>Other · 12%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Goals card -->
+    <div class="card">
+      <div class="card-inner">
+        <div class="card-header">
+          <span class="card-title">Savings Goals</span>
+          <a href="/goals" class="card-tag">Manage goals</a>
+        </div>
+
+        <div class="goals-list" id="sidebar-goals">
+          {% if goals %}
+            {% for g in goals %}
+              {% set pct = (g.Saving / g.amount * 100) if g.amount else 0 %}
+              <div class="goal-item">
+                <div class="goal-top">
+                  <span class="goal-name">{{ g.title }}</span>
+                  <span class="goal-progress">
+                    ₹ {{ '%.0f'|format(g.Saving) }} / {{ '%.0f'|format(g.amount) }}
+                  </span>
+                </div>
+                <div class="progress-bar">
+                  <div class="progress-fill" style="width: {{ pct|round(0) }}%"></div>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <p class="dashboard-subtitle">No goals yet.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
