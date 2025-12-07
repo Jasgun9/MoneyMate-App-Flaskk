@@ -4,15 +4,33 @@
     <meta charset="UTF-8" />
     <title>FlowLedger · Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
-  </head>
+     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+     <!-- Google Fonts: Plus Jakarta Sans (clean, rounded-ish) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+</head>
+
   <body>
     <div class="app-shell">
       <header class="app-header">
         <div class="app-header-inner">
           <div class="brand">
-            <div class="brand-logo"></div>
+            
+            <div class="brand-logo" id="logo">
+              <!-- <img src="{{ url_for('static', filename='logo.jpg') }}" alt=""> -->
+            </div>
+
+            <script>
+  const logo = "{{ config.site_logo }}";
+  
+  document.getElementById("logo").style.background = `url(${logo})`;
+  document.getElementById("logo").style.backgroundRepeat = "round";
+  
+</script>  
             <div>
-              <div class="brand-text-main">FlowLedger</div>
+              <div class="brand-text-main">{{ config.site_name }}</div>
               <div class="brand-text-sub">Minimal Expense Tracker</div>
             </div>
           </div>
@@ -52,5 +70,7 @@
       </main>
    
     </div>
+
+    {% block scripts %}{% endblock %}
   </body>
 </html>

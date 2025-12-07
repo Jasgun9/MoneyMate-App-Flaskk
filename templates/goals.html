@@ -24,7 +24,9 @@
         {% if goals %}
           {% for g in goals %}
             {% set pct = (g.Saving / g.amount * 100) if g.amount else 0 %}
-            <div class="goal-item">
+            <div class="goal-item"
+                 data-goal-id="{{ g.Gid }}"   
+                 style="cursor: pointer">
               <div class="goal-top">
                 <span class="goal-name">{{ g.title }}</span>
                 <span class="goal-progress">
@@ -40,7 +42,9 @@
             </div>
           {% endfor %}
         {% else %}
-          <p class="dashboard-subtitle" id="no-goal-text">No goals yet. Add your first goal on the right.</p>
+          <p class="dashboard-subtitle" id="no-goal-text">
+            No goals yet. Add your first goal on the right.
+          </p>
         {% endif %}
       </div>
     </div>
@@ -51,13 +55,13 @@
     <div class="card-inner">
       <div class="card-header">
         <span class="card-title">Create Goal</span>
-        <span class="card-tag">AJAX · No reload</span>
+        <!-- <span class="card-tag">AJAX · No reload</span> -->
       </div>
 
       <div id="goal-form">
         <div class="form-grid">
           <div class="form-field">
-            <label for="goal-name">Goal name</label>
+            <label for="title">Goal name</label>
             <input
               type="text"
               id="title"
@@ -68,7 +72,7 @@
           </div>
 
           <div class="form-field">
-            <label for="target-amount">Target amount (₹)</label>
+            <label for="amount">Target amount (₹)</label>
             <input
               type="number"
               id="amount"
@@ -81,7 +85,7 @@
           </div>
 
           <div class="form-field">
-            <label for="current-amount">Current saved (₹)</label>
+            <label for="saving">Current saved (₹)</label>
             <input
               type="number"
               id="saving"
@@ -93,11 +97,9 @@
           </div>
 
           <div class="form-field">
-            <label for="deadline">Target date</label>
+            <label for="date">Target date</label>
             <input type="date" id="date" name="date" />
           </div>
-
-        
         </div>
 
         <div style="margin-top: 0.7rem; display: flex; gap: 0.5rem; justify-content: flex-end">
@@ -108,88 +110,206 @@
     </div>
   </div>
 </section>
+
+
 <script>
-  const ResetData = () => {
-  document.getElementById("title").value = ""
-  document.getElementById("amount").value = ""
-  document.getElementById("saving").value = ""
-  document.getElementById("date").value = ""
-}
+  const resetData = () => {
+    document.getElementById("title").value = "";
+    document.getElementById("amount").value = "";
+    document.getElementById("saving").value = "";
+    document.getElementById("date").value = "";
+  };
 
-const loadData =async () =>{
-document.getElementById("goals-list").innerHTML=""
-try {
-  const res = await fetch("/goals", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-  });
-  const data = await res.json();
-  document.getElementsByClassName("card-tag")[0].innerHTML = `${data.length} total`
-  data.forEach(goal => {
-  
-      document.getElementById("goals-list").innerHTML += `  
-            <div class="goal-item">
-              <div class="goal-top">
-                <span class="goal-name">${goal.title}</span>
-                <span class="goal-progress">
-                  ₹ ${goal.saved.toFixed(0)} / ${goal.target.toFixed(0)}
-                </span>
-              </div>
-              <div class="progress-bar">
-                <div class="progress-fill" style="width: ${goal.progress}%"></div>
-              </div>
-              <p class="dashboard-subtitle" style="margin-top: 0.25rem">
-                Created on ${goal.date}
-              </p>
-            </div>
-              
-    `
-    
-  })
-}
-      
-catch (err) {
-  console.error(err);
-  alert("Network error while fetching expenses");
-}}
+  // 🔹 Fetch all goals (JSON) and re-render the list
+  const loadData = async () => {
+    const list = document.getElementById("goals-list");
+    list.innerHTML = "";
 
-  document.addEventListener("DOMContentLoaded", ()=>{
-
-    document.getElementById("date").value = new Date().toISOString().split("T")[0]
-    document.getElementById("addGoal").addEventListener("click", async () => {
-      title = document.getElementById("title").value
-      
-      amount = document.getElementById("amount").value
-      saving = document.getElementById("saving").value
-      date = document.getElementById("date").value
-      // console.log(title, category, amount, isExpense, date)
-        url = "/add_goals?title="+title+"&amount="+amount+"&saving="+saving+"&dateAdded="+date
-
-
-      try{
-const res = await fetch(url, {
-        method: "GET",
+    try {
+      // NOTE: this assumes POST /goals returns JSON list of goals
+      const res = await fetch("/goals", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-
       });
 
-      if (res.ok) {
-        await loadData();
+      const data = await res.json();
+
+      // update "X total"
+      document.getElementsByClassName("card-tag")[0].innerHTML = `${data.length} total`;
+
+      if (!data.length) {
+        list.innerHTML =
+          '<p class="dashboard-subtitle" id="no-goal-text">No goals yet. Add your first goal on the right.</p>';
         return;
-      }}
-      catch(err){
-        console.error(err);
-        alert("Network error while saving expense");
       }
 
+      data.forEach((goal) => {
+        const pct =
+          goal.target === 0 ? 0 : Math.round((goal.saved / goal.target) * 100);
 
-    })
-  })
+        const div = document.createElement("div");
+        div.className = "goal-item";
+        div.style.cursor = "pointer";
+        div.setAttribute("data-goal-id", goal.id); // 🔴 for editing
+
+        div.innerHTML = `
+          <div class="goal-top">
+            <span class="goal-name">${goal.title}</span>
+            <span class="goal-progress">
+              ₹ ${goal.saved.toFixed(0)} / ${goal.target.toFixed(0)}
+            </span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: ${pct}%"></div>
+          </div>
+          <p class="dashboard-subtitle" style="margin-top: 0.25rem">
+            Created on ${goal.date}
+          </p>
+        `;
+
+        list.appendChild(div);
+      });
+    } catch (err) {
+      console.error(err);
+      alert("Network error while fetching goals");
+    }
+  };
+
+  // 🔹 Ask user for new saved value & send to backend
+  const editGoalSaved = async (goalId, currentSaved, target) => {
+    const input = prompt(
+      `Update saved amount for this goal (target: ₹${target.toFixed(0)}):`,
+      currentSaved.toFixed(0)
+    );
+
+    if (input === null) return; // user cancelled
+
+    const newSaved = parseFloat(input);
+    if (isNaN(newSaved) || newSaved < 0) {
+      alert("Please enter a valid positive number");
+      return;
+    }
+    if (newSaved > target) {
+      const ok = confirm(
+        `You entered ₹${newSaved.toFixed(
+          0
+        )}, which is more than target ₹${target.toFixed(
+          0
+        )}. Continue anyway?`
+      );
+      if (!ok) return;
+    }
+
+    try {
+      // 🔴 You must implement this route in Flask (see below)
+      const res = await fetch("/updategoalsaving", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: goalId, saved: newSaved }),
+      });
+
+      const data = await res.json();
+      if (!data.ok) {
+        alert(data.error || "Failed to update goal");
+        return;
+      }
+
+      await loadData(); // refresh list
+    } catch (err) {
+      console.error(err);
+      alert("Network error while updating goal");
+    }
+  };
+
+  document.addEventListener("DOMContentLoaded", () => {
+
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // default date = today
+    document.getElementById("date").value =
+      new Date().toISOString().split("T")[0];
+
+    // initial load
+    loadData();
+
+    // Add goal button
+    document
+      .getElementById("addGoal")
+      .addEventListener("click", async () => {
+        const title = document.getElementById("title").value;
+        const amount = document.getElementById("amount").value;
+        const saving = document.getElementById("saving").value || 0;
+        const date = document.getElementById("date").value;
+
+        const url =
+          "/add_goals?title=" +
+          encodeURIComponent(title) +
+          "&amount=" +
+          encodeURIComponent(amount) +
+          "&saving=" +
+          encodeURIComponent(saving) +
+          "&dateAdded=" +
+          encodeURIComponent(date);
+
+        try {
+          const res = await fetch(url, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+          });
+
+          if (res.ok) {
+            resetData();
+            await loadData();
+          } else {
+            alert("Failed to save goal");
+          }
+        } catch (err) {
+          console.error(err);
+          alert("Network error while saving goal");
+        }
+      });
+
+    // 🔹 Make every goal tappable (event delegation)
+    document
+      .getElementById("goals-list")
+      .addEventListener("click", (e) => {
+        const item = e.target.closest(".goal-item");
+        if (!item) return;
+
+        const goalId = parseInt(item.getAttribute("data-goal-id"), 10);
+        if (!goalId) return;
+
+        // Read current text to get saved & target
+        const progressText = item.querySelector(".goal-progress").textContent;
+        // Format: "₹ 1000 / 5000"
+        const match = progressText.match(/₹\s*([\d.]+)\s*\/\s*([\d.]+)/);
+        if (!match) {
+          console.warn("Could not parse goal progress text:", progressText);
+          return;
+        }
+        const currentSaved = parseFloat(match[1]);
+        const target = parseFloat(match[2]);
+
+        editGoalSaved(goalId, currentSaved, target);
+      });
+  });
 </script>
-{% endblock %}
 
-{% block scripts %}
-<script>
-
-</script>
 {% endblock %}

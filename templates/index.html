@@ -2,13 +2,13 @@
 {% block content %}
 <section class="dashboard-header">
   <div>
-    <h1 class="dashboard-title">Dashboard</h1>
+    <h1 class="dashboard-title"> {{ config.dashboard_title }}</h1>
     <p class="dashboard-subtitle">
-      A calm overview of your money: balance, spending and savings goals.
+     {{ config.dashboard_desc }}
     </p>
   </div>
   <div class="dashboard-header-right">
-    <span class="badge-pill">Live data · SQLite backend</span>
+    <!-- <span class="badge-pill">Live data · SQLite backend</span> -->
   </div>
 </section>
 
@@ -20,7 +20,7 @@
       <div class="card-inner">
         <div class="card-header">
           <span class="card-title">Current Balance</span>
-          <span class="card-tag">This month</span>
+          <!-- <span class="card-tag">This month</span> -->
         </div>
         <p class="balance-amount">₹ {{ '%.2f'|format(balance) }}</p>
         <div class="balance-meta">
@@ -75,9 +75,14 @@
     </div>
   </div>
 
-  <!-- Right column -->
+
+
+
+
+<!-- 
+
+
   <div class="dashboard-right">
-    <!-- Fake chart kept same for now -->
     <div class="card" style="margin-bottom: 0.8rem">
       <div class="card-inner">
         <div class="card-header">
@@ -86,6 +91,9 @@
         </div>
 
         <div class="chart-wrapper">
+            <div style="width: 220px; max-width: 100%;">
+        <canvas id="expensePie"></canvas>
+      </div>
           <div class="pie-chart">
             <div class="pie-center">
               42%<br />
@@ -93,8 +101,8 @@
             </div>
           </div>
 
-          <div class="chart-legend">
-            <div class="legend-item">
+          <div class="chart-legend" id="expense-legend">
+         <div class="legend-item">
               <span class="legend-swatch" style="background: rgba(56, 189, 248, 0.95)"></span>
               <span>Essentials · 42%</span>
             </div>
@@ -109,11 +117,71 @@
             <div class="legend-item">
               <span class="legend-swatch" style="background: rgba(248, 113, 113, 0.95)"></span>
               <span>Other · 12%</span>
-            </div>
+            </div> 
+          </div>
+        </div>
+      </div>
+    </div> -->
+
+
+
+
+
+     <div class="dashboard-right">
+    <!-- Spending chart card -->
+    <div class="card" style="margin-bottom: 0.8rem">
+      <div class="card-inner">
+        <div class="card-header">
+          <span class="card-title">Spending Breakdown</span>
+          <span class="card-tag" id="month-label-tag">This month</span>
+        </div>
+
+        <!-- Month switcher -->
+        <div class="month-switcher" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
+          <button
+            type="button"
+            id="month-prev"
+            class="btn-secondary"
+            style="border-radius:999px;border:none;padding:0.25rem 0.7rem;font-size:0.8rem;cursor:pointer;"
+          >
+            ←
+          </button>
+
+          <span id="month-label" style="font-size:0.9rem;font-weight:500;">
+            <!-- JS will fill, e.g. "December 2025" -->
+          </span>
+
+          <button
+            type="button"
+            id="month-next"
+            class="btn-secondary"
+            style="border-radius:999px;border:none;padding:0.25rem 0.7rem;font-size:0.8rem;cursor:pointer;"
+          >
+            →
+          </button>
+        </div>
+
+        <div class="chart-wrapper">
+          <div style="width: 220px; max-width: 100%;">
+            <canvas id="expensePie"></canvas>
+          </div>
+
+          <div class="chart-legend" id="expense-legend">
+            <!-- Legend will be filled by JS -->
           </div>
         </div>
       </div>
     </div>
+
+
+
+
+
+
+
+
+
+
 
     <!-- Goals card -->
     <div class="card">
@@ -147,4 +215,174 @@
     </div>
   </div>
 </section>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const ctx = document.getElementById("expensePie");
+    if (!ctx) return;
+
+    // 1) Build full expense list from backend (include date)
+    const rawExpenses = [
+      {% for e in allexpenses %}
+        {
+          category: "{{ e.category or 'Other' }}",
+          amount: {{ e.amount|round(2) }},
+          isExpense: {{ 'true' if e.isExpense else 'false' }},
+          date: "{{ e.dateAdded.strftime('%Y-%m-%d') }}"
+        }{% if not loop.last %},{% endif %}
+      {% endfor %}
+    ];
+
+    if (!rawExpenses.length) {
+      ctx.parentElement.innerHTML = "<p class='dashboard-subtitle'>No expense data available yet.</p>";
+      return;
+    }
+
+    // 2) Collect all months that have data (YYYY-MM)
+    let months = Array.from(
+      new Set(
+        rawExpenses.map(e => e.date.slice(0, 7)) // "2025-11"
+      )
+    ).sort(); // ascending
+
+    // latest month at the end
+    let currentMonthIndex = months.length - 1;
+
+    // Helper: "2025-11" -> "Nov 2025"
+    function monthKeyToLabel(monthKey) {
+      const [year, month] = monthKey.split("-");
+      const names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const mIndex = parseInt(month, 10) - 1;
+      return `${names[mIndex]} ${year}`;
+    }
+
+    const monthLabelSpan = document.getElementById("month-label");
+    const monthLabelTag = document.getElementById("month-label-tag");
+    const btnPrev = document.getElementById("month-prev");
+    const btnNext = document.getElementById("month-next");
+    const legendContainer = document.getElementById("expense-legend");
+
+    // 3) Chart instance (created once)
+    let chart = null;
+
+    function updateForCurrentMonth() {
+      const monthKey = months[currentMonthIndex];        // "2025-11"
+      const labelText = monthKeyToLabel(monthKey);
+
+      if (monthLabelSpan) monthLabelSpan.textContent = labelText;
+      if (monthLabelTag) monthLabelTag.textContent = labelText;
+
+      // Filter only expenses in this month
+      const monthExpenses = rawExpenses.filter(
+        e => e.isExpense && e.date.startsWith(monthKey)
+      );
+
+      // Sum per category
+      const totalsByCategory = {};
+      monthExpenses.forEach(e => {
+        const key = e.category || "Other";
+        totalsByCategory[key] = (totalsByCategory[key] || 0) + e.amount;
+      });
+
+      const labels = Object.keys(totalsByCategory);
+      const values = Object.values(totalsByCategory);
+
+      if (!labels.length) {
+        // If no expenses this month → show message
+        ctx.parentElement.innerHTML =
+          "<p class='dashboard-subtitle'>No expense data for " + labelText + ".</p>";
+        return;
+      }
+
+      const baseColors = [
+        "#2563eb", "#22c55e", "#f97316", "#e11d48",
+        "#a855f7", "#0f766e", "#92400e"
+      ];
+      const bgColors = labels.map((_, i) => baseColors[i % baseColors.length]);
+
+      if (!chart) {
+        // first time: create chart
+        chart = new Chart(ctx, {
+          type: "pie",
+          data: {
+            labels: labels,
+            datasets: [{
+              data: values,
+              backgroundColor: bgColors,
+              borderColor: "#ffffff",
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    const l = context.label || "";
+                    const v = context.parsed || 0;
+                    return `${l}: ₹${v.toFixed(2)}`;
+                  }
+                }
+              }
+            }
+          }
+        });
+      } else {
+        // update existing chart
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = values;
+        chart.data.datasets[0].backgroundColor = bgColors;
+        chart.update();
+      }
+
+      // Update legend
+      if (legendContainer) {
+        legendContainer.innerHTML = "";
+        const total = values.reduce((a, b) => a + b, 0);
+        labels.forEach((label, i) => {
+          const amount = values[i];
+          const percent = total > 0 ? (amount / total * 100).toFixed(0) : 0;
+          const item = document.createElement("div");
+          item.className = "legend-item";
+          item.innerHTML = `
+            <span class="legend-swatch" style="background: ${bgColors[i]}"></span>
+            <span>${label} – ₹${amount.toFixed(0)} (${percent}%)</span>
+          `;
+          legendContainer.appendChild(item);
+        });
+      }
+
+      // update button disabled state
+      if (btnPrev) btnPrev.disabled = currentMonthIndex === 0;
+      if (btnNext) btnNext.disabled = currentMonthIndex === months.length - 1;
+      if (btnPrev) btnPrev.style.opacity = currentMonthIndex === 0 ? 0.5 : 1;
+      if (btnNext) btnNext.style.opacity = currentMonthIndex === months.length - 1 ? 0.5 : 1;
+    }
+
+    // 4) Wire up arrows
+    if (btnPrev) {
+      btnPrev.addEventListener("click", function () {
+        if (currentMonthIndex > 0) {
+          currentMonthIndex--;
+          updateForCurrentMonth();
+        }
+      });
+    }
+
+    if (btnNext) {
+      btnNext.addEventListener("click", function () {
+        if (currentMonthIndex < months.length - 1) {
+          currentMonthIndex++;
+          updateForCurrentMonth();
+        }
+      });
+    }
+
+    // 5) Initial render (latest month)
+    updateForCurrentMonth();
+  });
+</script>
 {% endblock %}

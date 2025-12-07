@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
 import os
 from datetime import datetime
-
+import json
 from flask_login import (
     LoginManager,
     UserMixin,
@@ -23,11 +23,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 login_manager = LoginManager(app)
-login_manager.login_view = "login"  # name of your login route
+login_manager.login_view = "login"
 login_manager.login_message_category = "info"
-# ======================
-# MODELS
-# ======================
 
 class User(UserMixin, db.Model):
     __tablename__ = "users"
@@ -87,6 +84,11 @@ def create_tables_once():
 # HELPERS
 # ======================
 
+
+with open("config.json") as f:
+    SITE_CONFIG = json.load(f)
+
+
 def expense_to_dict(e: Expense):
     return {
         "id": e.Eid,
@@ -130,7 +132,10 @@ def index():
         .filter(Expense.user_id == current_user.id, Expense.isExpense == True)
         .scalar()
     )
-    balance = income - expense
+    goalmoney = (
+        db.session.query(func.coalesce(func.sum(Goals.Saving), 0.0)).filter(Goals.user_id == current_user.id).scalar()
+        )
+    balance = (income - expense) - goalmoney
 
     # latest 5 expenses
     latest_expenses = (
@@ -142,7 +147,12 @@ def index():
 
     # a few goals
     goals = Goals.query.filter_by(user_id=current_user.id).order_by(Goals.dateAdded.desc()).limit(3).all()
-
+    allexpenses = (
+        Expense.query
+        .filter_by(user_id=current_user.id)
+        .order_by(Expense.dateAdded.desc())
+        .all()
+    )
     return render_template(
         "index.html",
         balance=balance,
@@ -150,7 +160,46 @@ def index():
         expense=expense,
         latest_expenses=latest_expenses,
         goals=goals,
+        allexpenses=allexpenses
     )
+
+
+
+
+@app.context_processor
+def inject_config():
+    return dict(config=SITE_CONFIG)
+
+@app.route("/updategoalsaving", methods=["POST"])
+@login_required
+def update_goal_saving():
+    data = request.get_json() or {}
+
+    goal_id = data.get("id")
+    # print(data.get("id"))
+    new_saved = data.get("saved")
+
+    try:
+        goal_id = int(goal_id)
+        new_saved = float(new_saved)
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "error": "Invalid data"}), 400
+
+    # goal = Goals.query.filter_by(Gid=goal_id, user_id=current_user.id).first()
+    goal = Goals.query.filter(Goals.Gid == goal_id, Goals.user_id == current_user.id).first()
+    if not goal:
+        return jsonify({"ok": False, "error": "Goal not found"}), 404
+
+    if new_saved < 0:
+        new_saved = 0
+
+    goal.Saving = new_saved
+    db.session.commit()
+
+    return jsonify({"ok": True})
+
+
+
 
 
 @app.route("/transactions", methods=["GET", "POST"])
@@ -170,7 +219,7 @@ def transactions_page():
 @login_required
 
 def goals_page():
-    goals = Goals.query.order_by(Goals.dateAdded.desc(), Goals.Gid.desc()).all()
+    goals = Goals.query.filter_by(user_id=current_user.id).order_by(Goals.dateAdded.desc(), Goals.Gid.desc()).all()
     if request.method == "POST":
         return jsonify([goal_to_dict(g) for g in goals])
     return render_template("goals.html", goals=goals)
@@ -243,106 +292,6 @@ def add_goals():
 
 
 
-
-
-
-
-# @app.route("/api/expenses", methods=["GET", "POST"])
-# def api_expenses():
-#     if request.method == "POST":
-#         data = request.get_json() or {}
-
-#         title = (data.get("title") or "").strip()
-#         category = data.get("category") or None
-#         method = (data.get("method") or "Other").strip()
-#         amount = float(data.get("amount") or 0)
-#         date_str = data.get("date")
-
-#         if not title or amount <= 0:
-#             return jsonify({"ok": False, "error": "Title and amount required"}), 400
-
-#         if date_str:
-#             try:
-#                 date_obj = datetime.fromisoformat(date_str).date()
-#             except ValueError:
-#                 date_obj = datetime.utcnow().date()
-#         else:
-#             date_obj = datetime.utcnow().date()
-
-#         exp = Expense(
-#             title=title,
-#             isExpense=True,  # treat all as expenses for now
-#             typee=method,
-#             amount=amount,
-#             category=category,
-#             dateAdded=date_obj,
-#         )
-#         db.session.add(exp)
-#         db.session.commit()
-
-#         return jsonify({"ok": True, "expense": expense_to_dict(exp)})
-
-#     # GET
-#     expenses = (
-#         Expense.query.order_by(Expense.dateAdded.desc(), Expense.Eid.desc())
-#         .all()
-#     )
-#     return jsonify([expense_to_dict(e) for e in expenses])
-
-
-@app.route("/api/goals", methods=["GET", "POST"])
-@login_required
-
-def api_goals():
-    if request.method == "POST":
-        data = request.get_json() or {}
-
-        title = (data.get("title") or "").strip()
-        target = float(data.get("target") or 0)
-        saved = float(data.get("saved") or 0)
-
-        if not title or target <= 0:
-            return jsonify({"ok": False, "error": "Title and target required"}), 400
-
-        goal = Goals(
-            title=title,
-            amount=target,
-            Saving=saved,
-            dateAdded=datetime.utcnow().date(),
-        )
-        db.session.add(goal)
-        db.session.commit()
-
-        return jsonify({"ok": True, "goal": goal_to_dict(goal)})
-
-    # GET
-    goals = Goals.query.order_by(Goals.dateAdded.desc(), Goals.Gid.desc()).all()
-    return jsonify([goal_to_dict(g) for g in goals])
-
-
-@app.route("/api/summary")
-@login_required
-
-def api_summary():
-    income = (
-        db.session.query(func.coalesce(func.sum(Expense.amount), 0.0))
-        .filter_by(isExpense=False)
-        .scalar()
-    )
-    expense = (
-        db.session.query(func.coalesce(func.sum(Expense.amount), 0.0))
-        .filter_by(isExpense=True)
-        .scalar()
-    )
-    balance = income - expense
-
-    return jsonify(
-        {
-            "income": income,
-            "expense": expense,
-            "balance": balance,
-        }
-    )
 
 
 
