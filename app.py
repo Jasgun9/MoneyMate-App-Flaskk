@@ -202,6 +202,27 @@ def update_goal_saving():
 
 
 
+@app.route("/deleteGoal", methods=["POST"])
+@login_required
+def delete_goal():
+    data = request.get_json()
+    goal_id = data.get("goal_id")
+
+    goal = Goals.query.filter_by(user_id=current_user.id, Gid=goal_id).first()
+    if not goal:
+        return jsonify(success=False), 404
+
+    db.session.delete(goal)
+    db.session.commit()
+
+    return jsonify(success=True)
+
+
+
+
+
+
+
 @app.route("/transactions", methods=["GET", "POST"])
 @login_required
 

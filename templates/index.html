@@ -1,5 +1,16 @@
 {% extends "base.html" %}
 {% block content %}
+<style>
+.delete-goal-btn {
+  transition: all .2s;
+  cursor: pointer;
+}
+.delete-goal-btn:hover {
+  transform: scale(1.2);
+}
+
+
+</style>
 <section class="dashboard-header">
   <div>
     <h1 class="dashboard-title"> {{ config.dashboard_title }}</h1>
@@ -201,6 +212,19 @@
                   <span class="goal-progress">
                     ₹ {{ '%.0f'|format(g.Saving) }} / {{ '%.0f'|format(g.amount) }}
                   </span>
+               <div class="delete-goal-btn" data-goal-id="{{ g.Gid }}">
+  <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none"
+       xmlns="http://www.w3.org/2000/svg">
+    <path d="M10 12V17" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+    <path d="M14 12V17" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+    <path d="M4 7H20" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+    <path d="M6 10V18C6 19.6569 7.34315 21 9 21H15C16.6569 21 18 19.6569 18 18V10"
+          stroke="#fff" stroke-width="2"/>
+    <path d="M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5V7H9V5Z"
+          stroke="#fff" stroke-width="2"/>
+  </svg>
+</div>
+
                 </div>
                 <div class="progress-bar">
                   <div class="progress-fill" style="width: {{ pct|round(0) }}%"></div>
@@ -218,6 +242,45 @@
 
 <script>
   document.addEventListener("DOMContentLoaded", function () {
+
+
+
+document.querySelectorAll(".delete-goal-btn").forEach(btn => {
+    btn.addEventListener("click", function () {
+      const goalId = this.dataset.goalId;
+
+      if (!confirm("Delete this goal?")) return;
+
+      fetch("/deleteGoal", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ goal_id: goalId })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          location.reload();
+        } else {
+          alert("Failed to delete goal");
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Error deleting goal");
+      });
+    });
+  });
+
+
+
+
+
+
+
+
+
     const ctx = document.getElementById("expensePie");
     if (!ctx) return;
 
@@ -384,5 +447,10 @@
     // 5) Initial render (latest month)
     updateForCurrentMonth();
   });
+
+
+
+  
+  
 </script>
 {% endblock %}
