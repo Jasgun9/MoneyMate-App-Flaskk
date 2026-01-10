@@ -1,0 +1,135 @@
+
+/* === Responsive Mobile Enhanced Styles === */
+
+/* Base mobile-first improvements */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-size: 14px;
+}
+
+/* Make header wrap nicely on small screens */
+.app-header-inner {
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+
+/* Navigation links stack on very small screens */
+@media (max-width: 600px) {
+  .nav-links {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .nav-links a {
+    font-size: 0.78rem;
+    padding: 0.35rem 0.7rem;
+  }
+}
+
+/* Dashboard header stack */
+@media (max-width: 700px) {
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+  }
+
+  .dashboard-title {
+    font-size: 1.1rem;
+  }
+
+  .dashboard-subtitle {
+    font-size: 0.82rem;
+  }
+}
+
+/* Make dashboard grid single column on mobile */
+@media (max-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Cards spacing on mobile */
+@media (max-width: 600px) {
+  .card {
+    padding: 1rem;
+    border-radius: 18px;
+  }
+}
+
+/* Tables responsive: horizontal scroll */
+@media (max-width: 700px) {
+  .table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
+
+/* Forms full width fields */
+@media (max-width: 600px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-field input,
+  .form-field select,
+  .form-field textarea {
+    font-size: 0.85rem;
+    padding: 0.55rem 0.8rem;
+  }
+}
+
+/* Expense list adapt */
+@media (max-width: 600px) {
+  .expense-item {
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
+  }
+
+  .expense-amount {
+    text-align: left;
+  }
+}
+
+/* Chart section stack */
+@media (max-width: 700px) {
+  .chart-wrapper {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* Goals cards */
+@media (max-width: 600px) {
+  .goal-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .goal-progress {
+    font-size: 0.75rem;
+  }
+}
+
+/* Auth pages mobile */
+@media (max-width: 500px) {
+  .auth-card {
+    padding: 1.2rem;
+  }
+
+  .auth-title {
+    font-size: 1.1rem;
+  }
+
+  .auth-subtitle {
+    font-size: 0.82rem;
+  }
+}

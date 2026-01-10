@@ -677,3 +677,161 @@ body {
     height: 130px;
   }
 }
+
+
+
+/* =====================================================
+   ANDROID PHONE FIX (360px – 412px)
+   Tested: Redmi / Samsung / Realme
+===================================================== */
+
+/* Force proper scaling */
+html, body {
+  width: 100%;
+  overflow-x: hidden !important;
+  
+}
+
+/* ---------- FORCE ALL 2-COLUMN SECTIONS TO STACK ---------- */
+@media (max-width: 480px) {
+  section[style*="grid-template-columns"] {
+    display: block !important;
+  }
+}
+
+/* ---------- HEADER ---------- */
+@media (max-width: 480px) {
+  .app-header-inner {
+    flex-direction: column !important;
+    align-items: flex-start;
+    padding: 0.8rem 1rem;
+  }
+
+  .brand-logo {
+    width: 44px;
+    height: 44px;
+  }
+
+  .nav-links {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .nav-links a {
+    font-size: 0.78rem;
+    padding: 0.3rem 0.65rem;
+  }
+}
+
+/* ---------- DASHBOARD ---------- */
+@media (max-width: 480px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dashboard-header {
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .dashboard-title {
+    font-size: 1.05rem;
+  }
+
+  .dashboard-subtitle {
+    font-size: 0.78rem;
+  }
+}
+
+/* ---------- CARDS ---------- */
+@media (max-width: 480px) {
+  .card {
+    padding: 0.9rem;
+    border-radius: 18px;
+  }
+}
+
+/* ---------- EXPENSE LIST ---------- */
+@media (max-width: 480px) {
+  .expense-item {
+    grid-template-columns: 1fr !important;
+    gap: 0.25rem;
+  }
+
+  .expense-amount {
+    text-align: left;
+    font-size: 0.88rem;
+  }
+}
+
+/* ---------- FORMS ---------- */
+@media (max-width: 480px) {
+  .form-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .form-field input,
+  .form-field select,
+  .form-field textarea {
+    font-size: 0.85rem;
+    padding: 0.55rem 0.75rem;
+  }
+}
+
+/* ---------- BUTTONS (ANDROID TOUCH SAFE) ---------- */
+@media (max-width: 480px) {
+  .btn {
+    min-height: 44px;
+    font-size: 0.85rem;
+  }
+}
+
+/* ---------- CHARTS ---------- */
+@media (max-width: 480px) {
+  .chart-wrapper {
+    flex-direction: column !important;
+    align-items: flex-start;
+  }
+
+  canvas,
+  .pie-chart {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .pie-chart {
+    width: 110px;
+    height: 110px;
+  }
+}
+
+/* ---------- TABLES ---------- */
+@media (max-width: 480px) {
+  .table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
+
+/* ---------- AUTH PAGES ---------- */
+@media (max-width: 480px) {
+  .auth-wrapper {
+    padding: 1rem;
+  }
+
+  .auth-card {
+    padding: 1.1rem;
+    border-radius: 18px;
+  }
+
+  .auth-title {
+    font-size: 1.05rem;
+  }
+
+  .auth-subtitle {
+    font-size: 0.78rem;
+  }
+}
