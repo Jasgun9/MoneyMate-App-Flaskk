@@ -116,11 +116,19 @@ def goal_to_dict(g: Goals):
 # ======================
 # PAGE ROUTES
 # ======================
-
 @app.route("/")
+def index():
+    # If the user is already logged in, send them straight to their dashboard
+    if current_user.is_authenticated:
+        return redirect(url_for("dashboard"))
+    
+    # Otherwise, show the public landing page
+    return render_template("main.html")
+
+@app.route("/dashboard")
 @login_required
 
-def index():
+def dashboard():
     # totals
     income = (
         db.session.query(func.coalesce(func.sum(Expense.amount), 0.0))
